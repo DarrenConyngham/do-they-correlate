@@ -26,8 +26,8 @@ st.subheader(f"The correlation coefficient is {corr:.2f}.")
 # st.divider()
 
 # Option for log or linear scale
-scale_x = st.radio("Linear Scale for x-axis", (False, True), horizontal=True)
-scale_y = st.radio("Linear Scale for y-axis", (False, True), horizontal=True)
+scale_x = st.radio("Log Scale for x-axis", (False, True), horizontal=True)
+scale_y = st.radio("Log Scale for y-axis", (False, True), horizontal=True)
 
 # Create a scatterplot
 fig = px.scatter(df, x=x_axis, y=y_axis, hover_name=df.index, log_x=scale_x, log_y=scale_y, trendline="ols",
