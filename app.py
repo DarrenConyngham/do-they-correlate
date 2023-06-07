@@ -7,7 +7,7 @@ st.title("Do They Correlate?")
 st.subheader("Do Two World Development Indicators have a relationship?")
 
 # Create a DataFrame
-df = pd.read_parquet('WDIData2020.parquet')
+df = pd.read_parquet('WDIData2020reduced.parquet')
 
 
 # Create a dropdown menu for the x-axis
@@ -30,7 +30,8 @@ scale_x = st.radio("Log Scale for x-axis", (False, True), horizontal=True)
 scale_y = st.radio("Log Scale for y-axis", (False, True), horizontal=True)
 
 # Create a scatterplot
-fig = px.scatter(df, x=x_axis, y=y_axis, hover_name=df.index, log_x=scale_x, log_y=scale_y, trendline="ols",
+fig = px.scatter(df.reset_index(), x=x_axis, y=y_axis, hover_name='Country Name', 
+                 log_x=scale_x, log_y=scale_y, trendline="ols", color = 'Region', trendline_scope = 'overall',
                  title=f"{x_axis.split(' (')[0].upper()} vs. {y_axis.split(' (')[0].upper()} in 2020")
 
 st.divider()
