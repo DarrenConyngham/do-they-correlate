@@ -2,6 +2,7 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 import statsmodels
+import math
 
 st.title("Do They Correlate? :thinking_face:")
 # st.markdown("### Do 2 World Development Indicators have a relationship?")
@@ -12,23 +13,37 @@ st.markdown("""Do richer countries have higher birth rates? Do older countries s
             Hopefully giving you a better understanding of the world :globe_with_meridians:.""")
 
 # Create a DataFrame
-df = pd.read_parquet('WDIData2020reduced.parquet')
+df = pd.read_parquet('WDIData1960_to_2024.parquet')
 
 st.divider()
 
 st.markdown("#### SELECT TWO VARIABLES TO COMPARE :mag_right:")
 
 # Create a dropdown menu for the x-axis
-options = df.columns
+options = df['Indicator Name'].unique()
 x_axis = st.selectbox("Select x-axis:", options)
 
 # Create a dropdown menu for the y-axis
 y_axis = st.selectbox("Select y-axis:", options)
 
+# Calculating the latest year where these 2 indicators share data
+x_axis_years = set(df[df['Indicator Name'] == x_axis]['Year'].values)
+y_axis_years = set(df[df['Indicator Name'] == y_axis]['Year'].values)
+years_overlap = x_axis_years.intersection(y_axis_years)
+latest_data_year = max(years_overlap)
+
+df_corr = df[(df['Indicator Name'].isin([x_axis, y_axis])) & (df['Year'] == 
+    latest_data_year)].pivot_table(values='Value', index=['Country Name', 'Region', 'Year'], columns='Indicator Name').reset_index()
+df_corr = df_corr[[x_axis, y_axis]]
+df_corr = df_corr.loc[:,~df_corr.columns.duplicated()]
+# x_axis_latest_data = df[(df['Indicator Name'] == x_axis) & (df['Year'] == latest_data_year)]['Value']
+# y_axis_latest_data = df[(df['Indicator Name'] == y_axis) & (df['Year'] == latest_data_year)]['Value']
+
+
 st.divider()
 
 # Add a summary sentence with the correlation coefficient
-r = df[x_axis].corr(df[y_axis]).round(2)
+r = df_corr[x_axis].corr(df_corr[y_axis]).round(2)
 
 
 def categorise_correlation_coefficient(r):
@@ -58,16 +73,32 @@ st.markdown("#### CHART :chart_with_upwards_trend:")
 scale_x = st.radio("Log Scale for x-axis:", (False, True), horizontal=True)
 scale_y = st.radio("Log Scale for y-axis:", (False, True), horizontal=True)
 
+df_graph = df[(df['Indicator Name'].isin([x_axis, y_axis])) & (df['Year'].isin(
+    years_overlap))].pivot_table(values='Value', index=['Country Name', 'Region', 'Year'], columns='Indicator Name').reset_index()
+
+def get_min_and_max_range(axis, scale):
+    print(scale)
+    if scale:
+        return [math.log(df_graph[axis].min()*0.95), math.log(df_graph[axis].max()*1.05)]
+    else:
+        return [df_graph[axis].min()*0.95, df_graph[axis].max()*1.05]
+
 # Create a scatterplot
-fig = px.scatter(df.reset_index(), x=x_axis, y=y_axis, hover_name='Country Name',
-                 log_x=scale_x, log_y=scale_y, trendline="ols", color='Region', trendline_scope='overall', opacity=0.8)
+fig = px.scatter(df_graph, x=x_axis, y=y_axis, hover_name='Country Name', animation_frame='Year', animation_group="Country Name",
+                 log_x=scale_x, log_y=scale_y, trendline="ols", color='Region', trendline_scope='overall', opacity=0.55,
+                 range_x=[get_min_and_max_range(x_axis, scale_x)[0], get_min_and_max_range(x_axis, scale_x)[1]], 
+                 range_y=[get_min_and_max_range(y_axis, scale_y)[0], get_min_and_max_range(y_axis, scale_y)[1]]
+                #  range_x=[df_graph[x_axis].min()*0.95,df_graph[x_axis].max()*1.05], 
+                #  range_y=[df_graph[y_axis].min()*0.95,df_graph[y_axis].max()*1.05]
+                 )
 fig.update_layout(title={
     'text': f"{x_axis.split(' (')[0].upper()} vs. {y_axis.split(' (')[0].upper()}",
     'y': 0.9,  # new
     'x': 0.5,
     'xanchor': 'center',
-    'yanchor': 'top'  # new
-})
+    'yanchor': 'top'})
+fig.update_traces(marker={'size': 12})
+
 
 # title_text=f"{x_axis.split(' (')[0].upper()} vs. {y_axis.split(' (')[0].upper()}", title_x=0.5, title_y=0.9,
 #                title_x_anchor='center', title_y_anchor='top')
@@ -75,19 +106,21 @@ fig.update_layout(title={
 
 # Display the scatterplot
 st.plotly_chart(fig)
-st.caption(body="Source: World Bank, 2020")
+st.caption(body="Source: World Bank Development Indicators")
 
 st.divider()
 
 st.markdown("#### OLS REGRESSION TABLE (THE VERY NERDY STUFF :nerd_face:)")
 
 st.markdown(
-    f"""The regression table below shows the results of a linear regression model with *{x_axis.split(' (')[0]}* as the independent variable and *{y_axis.split(' (')[0]}* as the dependent variable.""")
+    f"""The regression table below shows the results of a linear regression model with *{x_axis.split(' (')[0]}* as 
+    the independent variable and *{y_axis.split(' (')[0]}* as the dependent variable in {latest_data_year}.""")
 
 # Create a regression table
-df = df.dropna(subset=[x_axis, y_axis]).reset_index()
-X = df[x_axis]
-y = df[y_axis]
+#df = df.dropna(subset=[x_axis, y_axis]).reset_index()
+df_corr = df_corr.dropna()
+X = df_corr[x_axis]
+y = df_corr[y_axis]
 X = statsmodels.api.add_constant(X)
 
 model = statsmodels.api.OLS(y, X)
