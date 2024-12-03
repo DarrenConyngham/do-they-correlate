@@ -55,7 +55,7 @@ r = df_corr[x_axis].corr(df_corr[y_axis]).round(2)
 
 def categorise_correlation_coefficient(r):
     """Categorise the correlation coefficient into weak, moderate or strong."""
-    if abs(r) > 0.7:
+    if abs(r) > 0.65:
         strength = 'strong'
     elif abs(r) > 0.3:
         strength = 'moderate'
