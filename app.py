@@ -8,7 +8,7 @@ st.title("Do They Correlate? :thinking_face:")
 
 st.markdown("### INTRODUCTION :wave:")
 
-st.markdown("""Do richer countries have higher birth rates? Do older countries smoke more? This app uses [World Bank country-level data](https://data.worldbank.org/) from 1960 to 2023 to answer these questions and many others! 
+st.markdown("""Do better educated countries live longer? Do richer countries have higher birth rates? This app uses [World Bank country-level data](https://data.worldbank.org/) from 1960 to 2023 to answer these questions and many others! 
             Hopefully giving you a better understanding of the world :globe_with_meridians:.""")
 
 # Create a DataFrame
@@ -18,12 +18,20 @@ st.divider()
 
 st.markdown("### SELECT TWO VARIABLES TO COMPARE :mag_right:")
 
-# Create a dropdown menu for the x-axis
-options = df['Indicator Name'].unique()
-x_axis = st.selectbox("Select x-axis:", options)
+def move_to_beginning(lst, value):
+    if value in lst:  # Check if the value exists in the list
+        lst.remove(value)  # Remove the element
+        lst.insert(0, value)  # Insert it at the beginning
+    return lst
 
+# Create a dropdown menu for the x-axis
+options = df['Indicator Name'].unique().tolist()
+options_x = move_to_beginning(options, r"School enrollment, secondary (% gross)")
+x_axis = st.selectbox("Select x-axis:", options_x)
+
+options_y = move_to_beginning(options, r'Life expectancy at birth, total (years)')
 # Create a dropdown menu for the y-axis
-y_axis = st.selectbox("Select y-axis:", options)
+y_axis = st.selectbox("Select y-axis:", options_y)
 
 # Calculating the latest year where these 2 indicators share data
 x_axis_years = set(df[df['Indicator Name'] == x_axis]['Year'].values)
@@ -93,7 +101,7 @@ try:
         })
     fig.update_traces(marker={'size': 12})
 except ValueError: # handle cases where there is a value error
-    st.markdown('chart may not look right')
+    # st.markdown('chart may not look right')
     fig = px.scatter(df_graph, x=x_axis, y=y_axis, hover_name='Country Name', animation_frame='Year', animation_group="Country Name",
                     log_x=scale_x, log_y=scale_y, trendline="ols", 
                     color='Region', trendline_scope='overall', opacity=0.55
@@ -129,7 +137,7 @@ X = statsmodels.api.add_constant(X)
 
 model = statsmodels.api.OLS(y, X)
 results = model.fit()
-st.text(results.summary())
+st.code(results.summary(), language=None)
 
 
 st.divider()
