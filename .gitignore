@@ -1,2 +1,4 @@
 .venv
 *.csv
+.DS_Store
+previous_data_files
